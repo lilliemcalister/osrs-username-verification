@@ -26,6 +26,9 @@ const GUILD_ID = process.env.GUILD_ID;
 // Pull your Verified role ID from the .env file.
 const VERIFIED_ROLE_ID = process.env.VERIFIED_ROLE_ID;
 
+// Pull your log channel ID from the .env file.
+const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
+
 // Create the Discord bot client.
 // Guilds lets the bot work in servers.
 // GuildMembers lets it fetch members, change nicknames, and assign roles.
@@ -75,7 +78,7 @@ async function registerCommands() {
 registerCommands();
 
 // Run this once when the bot connects successfully.
-client.once('ready', () => {
+client.once('clientReady', () => {
   // Print the bot's username in the terminal so you know it is online.
   console.log(`Logged in as ${client.user.tag}`);
 });
@@ -98,14 +101,14 @@ client.on('interactionCreate', async (interaction) => {
   if (rsn.length < 1 || rsn.length > 12) {
     await interaction.reply({
       content: '❌ OSRS usernames must be between 1 and 12 characters.',
-      ephemeral: true,
-    });
+      flags: 64,
+});
     return;
   }
 
   try {
     // Tell Discord the bot is working so the interaction does not time out.
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     // Build the OSRS hiscores URL using the username the user entered.
     // encodeURIComponent makes sure spaces and special characters are handled safely.
@@ -139,15 +142,41 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    // Change the user's server nickname to the RSN they entered.
-    await member.setNickname(rsn);
+    let nicknameUpdated = false;
 
-    // Give the user the Verified role.
-    await member.roles.add(verifiedRole);
+    // Try to change the nickname, but do not fail the whole verification if it cannot.
+    try {
+      await member.setNickname(rsn);
+      nicknameUpdated = true;
+    } catch (error) {
+      console.log(`Could not change nickname for ${interaction.user.tag}: ${error.message}`);
+    }
 
+    // Try to give the Verified role, and handle errors cleanly.
+    try {
+      await member.roles.add(verifiedRole);
+    } catch (error) {
+      await interaction.editReply(`❌ Failed to assign role: ${error.message}`);
+      return;
+    }
+
+    // Look up the log channel in your server.
+    const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL_ID);
+
+    // If the log channel exists, send a verification log message there.
+    if (logChannel) {
+      await logChannel.send(
+        `✅ **Verification Successful**\n` +
+        `User: ${interaction.user.tag}\n` +
+        `RSN: **${rsn}**\n` +
+        `Nickname Updated: ${nicknameUpdated ? 'Yes' : 'No'}\n` +
+        `Current Display Name: ${member.displayName}\n` +
+        `Verified Role Assigned: Yes`
+      );
+    }
     // Send a success message back to the user privately.
     await interaction.editReply(
-      `✅ Verified successfully as **${rsn}**. You now have access to the server.`
+      `✅ Verified successfully as **${rsn}**. If your nickname did not update automatically, please reach out to a moderator to change it manually. You now have access to the server.`
     );
   } catch (error) {
     // Print the full error in your terminal for debugging.
