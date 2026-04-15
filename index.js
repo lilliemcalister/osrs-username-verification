@@ -29,6 +29,9 @@ const VERIFIED_ROLE_ID = process.env.VERIFIED_ROLE_ID;
 // Pull your log channel ID from the .env file.
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
 
+// Pull your welcome channel ID from the .env file.
+const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
+
 // Create the Discord bot client.
 // Guilds lets the bot work in servers.
 // GuildMembers lets it fetch members, change nicknames, and assign roles.
@@ -91,6 +94,15 @@ client.on('interactionCreate', async (interaction) => {
   // Ignore anything that is not the /verify command.
   if (interaction.commandName !== 'verify') return;
 
+  // Check if the command was run in the correct channel.
+  if (interaction.channelId !== WELCOME_CHANNEL_ID) {
+    await interaction.reply({
+      content: '❌ Please use /verify in the #welcome channel.',
+      ephemeral: true,
+    });
+    return;
+  }
+
   // Get the username the user typed after /verify.
   const rawRsn = interaction.options.getString('rsn');
 
@@ -101,14 +113,14 @@ client.on('interactionCreate', async (interaction) => {
   if (rsn.length < 1 || rsn.length > 12) {
     await interaction.reply({
       content: '❌ OSRS usernames must be between 1 and 12 characters.',
-      flags: 64,
+      ephemeral: true,
 });
     return;
   }
 
   try {
     // Tell Discord the bot is working so the interaction does not time out.
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ ephemeral: true });
 
     // Build the OSRS hiscores URL using the username the user entered.
     // encodeURIComponent makes sure spaces and special characters are handled safely.
