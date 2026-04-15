@@ -30,7 +30,11 @@ const VERIFIED_ROLE_ID = process.env.VERIFIED_ROLE_ID;
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
 
 // Pull your welcome channel ID from the .env file.
-const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
+const CHANNEL_ID = process.env.CHANNEL_ID;
+
+// Pull your welcome channel name from the .env file.
+const CHANNEL_NAME = process.env.CHANNEL_NAME;
+
 
 // Create the Discord bot client.
 // Guilds lets the bot work in servers.
@@ -95,9 +99,9 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName !== 'verify') return;
 
   // Check if the command was run in the correct channel.
-  if (interaction.channelId !== WELCOME_CHANNEL_ID) {
+  if (interaction.channelId !== CHANNEL_ID) {
     await interaction.reply({
-      content: '❌ Please use /verify in the #welcome channel.',
+      content: `❌ Please use /verify in the #${CHANNEL_NAME} channel.`,
       ephemeral: true,
     });
     return;
